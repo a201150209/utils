@@ -1,0 +1,46 @@
+function addImg(url) {
+        return new Promise((resolve, reject) => {
+            fetch(url)
+                .then(res => res.blob())
+                .then(res => {
+                    if (!res.size) {
+                        reject();
+                    }
+                    const reader = new FileReader();
+                    reader.readAsDataURL(res);
+                    reader.addEventListener(`abort`, reject);
+                    reader.addEventListener(`error`, reject);
+                    reader.addEventListener(`load`, () => {
+                        const base64 = reader.result;
+                        const img = new Image();
+                        img.src = base64;
+                        img.addEventListener(`abort`, reject);
+                        img.addEventListener(`error`, reject);
+                        img.addEventListener(`load`, () => {
+                            const imgSize = getImgSizeInInches(img.width, img.height);
+                            isLastSlideEmpty ? isLastSlideEmpty = false : createNewSlide();
+                            slides[slides.length - 1].addImage({
+                                data: base64,
+                                w: imgSize.wInches,
+                                h: imgSize.hInches
+                            });
+                            resolve();
+                        });
+
+                    });
+                })
+                .catch(e => {
+                    console.error(e);
+                    reject();
+                })
+        });
+
+    }
+
+    function addImagesToPres() {
+        //Если в отчете только картинки, то первый слайд пустой
+        //Поэтому перед экспортом проверяем, так ли это, и если так, то новый слайд для первой картинки не создаем
+        isLastSlideEmpty = !slides[slides.length - 1]._slideObjects.length;
+        return Promise.allSettled(imagesUrls.map((url) => addImg(url)))
+            .then(res => res);
+    }
